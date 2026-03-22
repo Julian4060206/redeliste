@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'media' }
+    </script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4 font-sans antialiased max-w-md mx-auto transition-colors duration-300 flex flex-col min-h-screen">
+    
+    <main class="flex-grow">
+        <h1 class="text-2xl font-bold text-center mb-6 text-blue-600 dark:text-blue-400">{{ title }}</h1>
+        
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md mb-6 transition-colors duration-300">
+            <h2 class="text-lg font-semibold mb-3">Auf die Liste setzen</h2>
+            
+            <div id="joinSection" class="flex gap-2">
+                <input type="text" id="nameInput" placeholder="Dein Name..." onkeydown="if(event.key === 'Enter') joinList()" class="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded w-full focus:ring focus:ring-blue-200 dark:focus:ring-blue-800 outline-none transition-colors">
+                <button onclick="joinList()" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 dark:hover:bg-blue-500 transition-colors">Melden</button>
+            </div>
+
+            <div id="leaveSection" class="hidden">
+                <p class="text-sm text-green-600 dark:text-green-400 font-semibold mb-2">Du stehst auf der Redeliste!</p>
+                <button onclick="leaveList()" class="bg-red-500 text-white w-full py-2 rounded shadow hover:bg-red-600 transition-colors">Wortmeldung zurückziehen</button>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md transition-colors duration-300">
+            <h2 class="text-lg font-semibold mb-3">Aktuelle Redeliste</h2>
+            <ul id="listContainer" class="space-y-2">
+                </ul>
+        </div>
+    </main>
+
+    <footer class="text-center text-xs text-gray-500 dark:text-gray-400 pt-8 pb-4 mt-auto">
+        Made by <a href="https://github.com/Julian4060206" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline">Julian</a>
+    </footer>
+
+    <script>
+        let myId = sessionStorage.getItem('myRedelisteId') ? parseInt(sessionStorage.getItem('myRedelisteId')) : null;
+        let currentList = [];
+        let ws;
+
+        function connect() {
+            ws = new WebSocket(`ws://${location.host}/ws`);
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                currentList = data.list;
+                renderList(currentList);
+            };
+
+            ws.onclose = () => {
+                setTimeout(connect, 2000);
+            };
+        }
+        connect();
+
+        function updateUI(list) {
+            const amIOnList = list.some(p => p.id === myId);
+            if (myId && !amIOnList) {
+                myId = null;
+                sessionStorage.removeItem('myRedelisteId');
+            }
+
+            if (myId) {
+                document.getElementById('joinSection').classList.add('hidden');
+                document.getElementById('leaveSection').classList.remove('hidden');
+            } else {
+                document.getElementById('joinSection').classList.remove('hidden');
+                document.getElementById('leaveSection').classList.add('hidden');
+            }
+        }
+
+        async function joinList() {
+            const nameInput = document.getElementById('nameInput');
+            if (!nameInput.value.trim()) return;
+            
+            const res = await fetch('/api/join', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: nameInput.value.trim() })
+            });
+            const data = await res.json();
+            
+            myId = data.id;
+            sessionStorage.setItem('myRedelisteId', myId);
+            nameInput.value = '';
+            renderList(currentList);
+        }
+
+        async function leaveList() {
+            if (!myId) return;
+            const tempId = myId;
+            myId = null;
+            sessionStorage.removeItem('myRedelisteId');
+            
+            await fetch('/api/leave', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: tempId })
+            });
+            renderList(currentList);
+        }
+
+        function renderList(list) {
+            updateUI(list);
+            const container = document.getElementById('listContainer');
+            if (list.length === 0) {
+                container.innerHTML = '<li class="text-gray-500 dark:text-gray-400 text-center py-4">Die Liste ist leer.</li>';
+                return;
+            }
+            container.innerHTML = list.map((p, index) => {
+                const isMe = p.id === myId;
+                const activeClasses = p.active 
+                    ? 'bg-blue-100 border-blue-400 dark:bg-blue-900 dark:border-blue-600 font-bold' 
+                    : 'bg-gray-50 border-gray-200 dark:bg-gray-700 dark:border-gray-600';
+                const meRing = isMe ? 'ring-2 ring-green-400 dark:ring-green-500' : '';
+                
+                return `
+                <li class="p-3 rounded-lg border flex justify-between items-center transition-colors ${activeClasses} ${meRing}">
+                    <span><span class="text-gray-400 dark:text-gray-400 mr-2">${index + 1}.</span> ${p.name} <span class="text-sm text-gray-500 dark:text-gray-300">${isMe ? '(Du)' : ''}</span></span>
+                    ${p.active ? '<span class="text-xs bg-blue-500 text-white px-2 py-1 rounded-full animate-pulse shadow">Spricht</span>' : ''}
+                </li>`;
+            }).join('');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+services:
+  redeliste:
+    build: .
+    container_name: redeliste
+    restart: unless-stopped
+    ports:
+      - "5005:5000"
+    volumes:
+      - ./config.json:/app/config.json
