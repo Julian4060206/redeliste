@@ -5,33 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = { darkMode: 'media' }
-    </script>
+    <script>tailwind.config = { darkMode: 'media' }</script>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4 font-sans antialiased max-w-md mx-auto transition-colors duration-300 flex flex-col min-h-screen">
     
     <main class="flex-grow">
         <h1 class="text-2xl font-bold text-center mb-6 text-blue-600 dark:text-blue-400">{{ title }}</h1>
         
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md mb-6 transition-colors duration-300">
-            <h2 class="text-lg font-semibold mb-3">Auf die Liste setzen</h2>
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md mb-6 transition-colors duration-300 flex flex-col gap-4">
+            <h2 class="text-lg font-semibold" id="actionTitle">Aktionen</h2>
             
-            <div id="joinSection" class="flex gap-2">
-                <input type="text" id="nameInput" placeholder="Dein Name..." onkeydown="if(event.key === 'Enter') joinList()" class="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded w-full focus:ring focus:ring-blue-200 dark:focus:ring-blue-800 outline-none transition-colors">
-                <button onclick="joinList()" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 dark:hover:bg-blue-500 transition-colors">Melden</button>
+            <input type="text" id="nameInput" placeholder="Dein Name..." class="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded w-full focus:ring focus:ring-blue-200 dark:focus:ring-blue-800 outline-none transition-colors">
+
+            <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 flex flex-col gap-2">
+                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Reguläre Wortmeldung</h3>
+                <button id="btnNormal" onclick="joinList(false)" class="w-full bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 transition-colors">Melden</button>
+                <button id="leaveNormalBtn" onclick="leaveList(false)" class="hidden w-full bg-red-500 text-white px-4 py-2 rounded shadow hover:bg-red-600 transition-colors">Wortmeldung zurückziehen</button>
+                <div id="frozenMessage" class="hidden text-center text-sm text-orange-600 dark:text-orange-400 font-bold py-1 bg-orange-100 dark:bg-orange-900/30 rounded">🔒 Die Liste ist geschlossen.</div>
             </div>
 
-            <div id="leaveSection" class="hidden">
-                <p class="text-sm text-green-600 dark:text-green-400 font-semibold mb-2">Du stehst auf der Redeliste!</p>
-                <button onclick="leaveList()" class="bg-red-500 text-white w-full py-2 rounded shadow hover:bg-red-600 transition-colors">Wortmeldung zurückziehen</button>
+            <div class="p-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-200 dark:border-amber-700/50 flex flex-col gap-2">
+                <h3 class="text-sm font-semibold text-amber-800 dark:text-amber-400">Geschäftsordnungsantrag (GO)</h3>
+                <button id="btnGO" onclick="joinList(true)" class="w-full bg-amber-500 text-white px-4 py-2 rounded shadow hover:bg-amber-600 transition-colors font-semibold">GO-Antrag stellen</button>
+                <button id="leaveGoBtn" onclick="leaveList(true)" class="hidden w-full bg-red-500 text-white px-4 py-2 rounded shadow hover:bg-red-600 transition-colors">GO-Antrag zurückziehen</button>
+                <p id="goHint" class="text-xs text-amber-700/70 dark:text-amber-500/70 text-center">Wird priorisiert behandelt. Auch bei gesperrter Liste möglich.</p>
             </div>
         </div>
 
         <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md transition-colors duration-300">
             <h2 class="text-lg font-semibold mb-3">Aktuelle Redeliste</h2>
-            <ul id="listContainer" class="space-y-2">
-                </ul>
+            <ul id="listContainer" class="space-y-2"></ul>
         </div>
     </main>
 
@@ -40,87 +43,173 @@
     </footer>
 
     <script>
-        let myId = sessionStorage.getItem('myRedelisteId') ? parseInt(sessionStorage.getItem('myRedelisteId')) : null;
+        // State: Wir verwalten zwei getrennte IDs im sessionStorage, 
+        // um reguläre Meldungen und GO-Anträge parallel zu erlauben.
+        let myNormalId = sessionStorage.getItem('myNormalId') ? parseInt(sessionStorage.getItem('myNormalId')) : null;
+        let myGoId = sessionStorage.getItem('myGoId') ? parseInt(sessionStorage.getItem('myGoId')) : null;
+        let mySavedName = sessionStorage.getItem('myName') || ''; // Damit man den Namen nicht ständig neu tippen muss
+        
         let currentList = [];
+        let isFrozen = false;
         let ws;
 
         function connect() {
-            ws = new WebSocket(`ws://${location.host}/ws`);
+            // Protokoll-Weiche für Tailscale Funnel (wss bei https, ws bei http)
+            const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${location.host}/ws`);
             
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 currentList = data.list;
+                isFrozen = data.is_frozen;
                 renderList(currentList);
             };
-
-            ws.onclose = () => {
-                setTimeout(connect, 2000);
-            };
+            
+            // Auto-Reconnect bei Verbindungsabbruch (z.B. Standby am Handy)
+            ws.onclose = () => setTimeout(connect, 2000);
         }
         connect();
 
         function updateUI(list) {
-            const amIOnList = list.some(p => p.id === myId);
-            if (myId && !amIOnList) {
-                myId = null;
-                sessionStorage.removeItem('myRedelisteId');
+            // Sync-Check: Wurden wir vom Admin manuell von der Liste geworfen? 
+            // Wenn ja, lokale IDs bereinigen.
+            if (myNormalId && !list.some(p => p.id === myNormalId)) {
+                myNormalId = null; sessionStorage.removeItem('myNormalId');
+            }
+            if (myGoId && !list.some(p => p.id === myGoId)) {
+                myGoId = null; sessionStorage.removeItem('myGoId');
             }
 
-            if (myId) {
-                document.getElementById('joinSection').classList.add('hidden');
-                document.getElementById('leaveSection').classList.remove('hidden');
+            const nameInput = document.getElementById('nameInput');
+            
+            // Namen automatisch ins Feld eintragen, falls er aus einer vorherigen Sitzung bekannt ist
+            if (!nameInput.value && mySavedName) nameInput.value = mySavedName;
+
+            // --- UI Logik: Reguläre Meldung ---
+            if (myNormalId) {
+                document.getElementById('btnNormal').classList.add('hidden');
+                document.getElementById('frozenMessage').classList.add('hidden');
+                document.getElementById('leaveNormalBtn').classList.remove('hidden');
             } else {
-                document.getElementById('joinSection').classList.remove('hidden');
-                document.getElementById('leaveSection').classList.add('hidden');
+                document.getElementById('leaveNormalBtn').classList.add('hidden');
+                if (isFrozen) {
+                    // Liste ist zu: Melden-Button verstecken, Schloss-Hinweis zeigen
+                    document.getElementById('btnNormal').classList.add('hidden');
+                    document.getElementById('frozenMessage').classList.remove('hidden');
+                } else {
+                    document.getElementById('btnNormal').classList.remove('hidden');
+                    document.getElementById('frozenMessage').classList.add('hidden');
+                }
+            }
+
+            // --- UI Logik: GO Antrag ---
+            if (myGoId) {
+                document.getElementById('btnGO').classList.add('hidden');
+                document.getElementById('leaveGoBtn').classList.remove('hidden');
+            } else {
+                document.getElementById('btnGO').classList.remove('hidden');
+                document.getElementById('leaveGoBtn').classList.add('hidden');
+            }
+
+            // Namensfeld nur ausblenden, wenn der User absolut nichts mehr eintragen kann
+            // (entweder weil er beides schon hat, oder Liste zu + GO schon gestellt)
+            if ((myNormalId && myGoId) || (isFrozen && myGoId)) {
+                nameInput.classList.add('hidden');
+            } else {
+                nameInput.classList.remove('hidden');
             }
         }
 
-        async function joinList() {
+        async function joinList(isGo) {
             const nameInput = document.getElementById('nameInput');
+            const btn = isGo ? document.getElementById('btnGO') : document.getElementById('btnNormal');
+            
             if (!nameInput.value.trim()) return;
             
-            const res = await fetch('/api/join', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: nameInput.value.trim() })
-            });
-            const data = await res.json();
+            // Namen für die Zukunft merken
+            mySavedName = nameInput.value.trim();
+            sessionStorage.setItem('myName', mySavedName);
             
-            myId = data.id;
-            sessionStorage.setItem('myRedelisteId', myId);
-            nameInput.value = '';
-            renderList(currentList);
+            // UI sperren, um Spam-Klicks ("Double Submit") zu verhindern, während der Fetch läuft
+            nameInput.disabled = true;
+            btn.disabled = true;
+            
+            try {
+                const res = await fetch('/api/join', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: mySavedName, is_go: isGo })
+                });
+                
+                // Fallback, falls der Status im Backend genau zwischen Klick und Request auf "Frozen" gewechselt ist
+                if (res.status === 403) {
+                    alert("Die Liste wurde gerade vom Admin gesperrt.");
+                    return;
+                }
+                
+                const data = await res.json();
+                
+                // Die ID im richtigen Slot speichern
+                if (isGo) {
+                    myGoId = data.id;
+                    sessionStorage.setItem('myGoId', myGoId);
+                } else {
+                    myNormalId = data.id;
+                    sessionStorage.setItem('myNormalId', myNormalId);
+                }
+                
+                renderList(currentList); 
+            } finally {
+                // UI wieder freigeben (egal ob Erfolg oder Fehler)
+                nameInput.disabled = false;
+                btn.disabled = false;
+            }
         }
 
-        async function leaveList() {
-            if (!myId) return;
-            const tempId = myId;
-            myId = null;
-            sessionStorage.removeItem('myRedelisteId');
+        async function leaveList(isGo) {
+            // Ermitteln, welche Meldung zurückgezogen werden soll
+            let tempId = isGo ? myGoId : myNormalId;
+            if (!tempId) return;
             
+            // Lokalen State sofort aufräumen, damit die UI direkt reagiert (snappy UX)
+            if (isGo) {
+                myGoId = null;
+                sessionStorage.removeItem('myGoId');
+            } else {
+                myNormalId = null;
+                sessionStorage.removeItem('myNormalId');
+            }
+            
+            renderList(currentList);
+            
+            // Server asynchron informieren
             await fetch('/api/leave', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: tempId })
             });
-            renderList(currentList);
         }
 
         function renderList(list) {
             updateUI(list);
             const container = document.getElementById('listContainer');
+            
             if (list.length === 0) {
                 container.innerHTML = '<li class="text-gray-500 dark:text-gray-400 text-center py-4">Die Liste ist leer.</li>';
                 return;
             }
+            
+            // Liste rendern: Visuelles Feedback für den User selbst ("isMe" -> grüner Rand)
+            // und farbliche Trennung von GO-Anträgen (Amber) und normalen Meldungen (Grau)
             container.innerHTML = list.map((p, index) => {
-                const isMe = p.id === myId;
+                const isMe = (p.id === myNormalId) || (p.id === myGoId);
                 const activeClasses = p.active 
                     ? 'bg-blue-100 border-blue-400 dark:bg-blue-900 dark:border-blue-600 font-bold' 
-                    : 'bg-gray-50 border-gray-200 dark:bg-gray-700 dark:border-gray-600';
+                    : (p.is_go ? 'bg-amber-50 border-amber-300 dark:bg-amber-900/20 dark:border-amber-700' : 'bg-gray-50 border-gray-200 dark:bg-gray-700 dark:border-gray-600');
                 const meRing = isMe ? 'ring-2 ring-green-400 dark:ring-green-500' : '';
+                const goBadge = p.is_go ? '<span class="text-[10px] font-bold bg-amber-500 text-white px-2 py-0.5 rounded shadow ml-2">GO</span>' : '';
                 
                 return `
                 <li class="p-3 rounded-lg border flex justify-between items-center transition-colors ${activeClasses} ${meRing}">
-                    <span><span class="text-gray-400 dark:text-gray-400 mr-2">${index + 1}.</span> ${p.name} <span class="text-sm text-gray-500 dark:text-gray-300">${isMe ? '(Du)' : ''}</span></span>
+                    <span><span class="text-gray-400 dark:text-gray-400 mr-2">${index + 1}.</span> ${p.name} ${goBadge} <span class="text-sm text-gray-500 dark:text-gray-300">${isMe ? '(Du)' : ''}</span></span>
                     ${p.active ? '<span class="text-xs bg-blue-500 text-white px-2 py-1 rounded-full animate-pulse shadow">Spricht</span>' : ''}
                 </li>`;
             }).join('');
