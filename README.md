@@ -1,103 +1,118 @@
-# Redeliste / Speaker List
+# Redeliste
 
-[English version below](#english-version)
+English version below.
 
-Eine einfache Echtzeit-Webanwendung zur Verwaltung von Wortmeldungen in Gremien, Vereinen oder Meetings. Entwickelt für den schnellen Einsatz via Docker.
-
-
-## Funktionen
-
-* **Echtzeit-Updates:** Durch die Nutzung von WebSockets sehen alle Teilnehmer Änderungen an der Liste in Echtzeit, ohne die Seite neu laden zu müssen.
-* **Niedrige Hürde:** Teilnehmer benötigen keinen Account und keinen Login, um sich auf die Liste zu setzen.
-* **Selbstverwaltung:** Wer auf der Liste steht, kann seine Wortmeldung jederzeit eigenständig wieder zurückziehen.
-* **Admin-Panel:** Der Sitzungsleiter hat Zugriff auf einen passwortgeschützten Bereich. Dort können Personen aufgerufen, manuell hinzugefügt, gelöscht oder in ihrer Reihenfolge per Drag & Drop verschoben werden.
-* **Responsive & Dark Mode:** Die Benutzeroberfläche passt sich an mobile Endgeräte sowie an die systemweite Dark-Mode-Einstellung des Nutzers an.
-* **Zustandslos (Stateless):** Die Anwendung speichert alle Daten im Arbeitsspeicher. Nach Beendigung der Sitzung und einem Neustart des Containers ist das System wieder im Ausgangszustand.
-
-## Tech-Stack
-
-* Backend: Python 3, FastAPI, WebSockets
-* Frontend: HTML5, Vanilla JavaScript, Tailwind CSS, SortableJS
-* Deployment: Docker & Docker Compose
-
-## Installation (Docker)
-
-1. Repository klonen:
-   ```bash
-   git clone [https://github.com/Julian4060206/redeliste.git](https://github.com/Julian4060206/redeliste.git)
-   cd redeliste
-   ```
-
-2. Konfiguration anlegen:
-   Erstelle eine Kopie der Beispielkonfiguration und trage den gewünschten Titel sowie ein sicheres Admin-Passwort ein.
-   ```bash
-   cp config.example.json config.json
-   ```
-
-3. Container starten:
-   ```bash
-   docker compose up -d --build
-   ```
-
-Die Anwendung ist nun unter `http://localhost:5005` (bzw. unter der IP deines Servers) erreichbar.
-
-## Nutzung
-
-* **Teilnehmer:** Rufen die Haupt-URL auf (`http://localhost:5005`).
-* **Admin:** Ruft das Unterverzeichnis `/admin` auf (`http://localhost:5005/admin`) und loggt sich mit dem in der `config.json` definierten Passwort ein.
-
-## Lizenz
-
-Dieses Projekt steht unter der MIT-Lizenz. Weitere Details sind in der [LICENSE](LICENSE) Datei zu finden.
+Eine leichtgewichtige Echtzeit-Webanwendung zur Verwaltung von Wortmeldungen bei Versammlungen, Konferenzen oder Meetings. Das Backend basiert auf Python (FastAPI) und WebSockets, das Frontend ist pures HTML/JS mit TailwindCSS. 
 
 ---
 
-<a name="english-version"></a>
-# English Version
+## Funktionen
 
-A simple, real-time web application for managing speaker lists in meetings, committees, or clubs. Designed for quick deployment using Docker.
+* Echtzeit-Synchronisation: Alle Clients aktualisieren sich über WebSockets sofort (kein Polling).
+* GO-Anträge: Geschäftsordnungsanträge werden priorisiert behandelt, schieben sich automatisch vor und sind auch bei gesperrter Liste möglich.
+* Admin-Bereich: Passwortgeschütztes Dashboard für die Versammlungsleitung.
+* Drag & Drop: Die Reihenfolge der Redner kann per Maus oder Touch umsortiert werden.
+* Freeze-Funktion: Die Liste kann für reguläre Neuanmeldungen serverseitig gesperrt werden.
+* Aktiver Sprecher: Aufgerufene Personen werden bei allen Teilnehmern visuell hervorgehoben.
+* Dark Mode: Das UI passt sich automatisch an die Systemeinstellungen der Nutzer an.
+
+---
+
+## Installation & Start
+
+Das Projekt bietet zwei fertige Docker-Setups, je nach Einsatzzweck. Voraussetzung ist ein installiertes Docker und Docker Compose.
+
+### Option A: Lokal oder VPN (Standard)
+Der schnelle Weg für Tests, das eigene Heimnetzwerk oder VPNs (wie Tailscale). Die App lauscht unverschlüsselt auf Port 5005.
+
+1. Repository klonen:
+   `git clone https://github.com/Julian4060206/redeliste.git && cd redeliste`
+2. Konfiguration anlegen/anpassen:
+   Erstelle oder bearbeite die Datei `config.json` und setze Titel sowie Admin-Passwort:
+   ```json
+   {
+       "title": "Meine Redeliste",
+       "admin_password": "dein_sicheres_passwort"
+   }
+   ```
+3. Container starten:
+   `docker compose up -d`
+4. Die App ist nun unter `http://localhost:5005` erreichbar. Der Admin-Bereich liegt unter `/admin`.
+
+---
+
+### Option B: Produktiv-Server (Webserver mit eigener Domain)
+Das Setup für echte Webserver. Es nutzt Caddy als Reverse Proxy, um WebSockets sauber weiterzuleiten und vollautomatisch ein kostenloses SSL-Zertifikat (HTTPS) von Let's Encrypt zu beziehen.
+
+1. Repository klonen:
+   `git clone https://github.com/Julian4060206/redeliste.git && cd redeliste`
+2. Umgebungsvariablen vorbereiten:
+   `cp .env.example .env`
+   Öffne die `.env` und trage deine Zieldomain ein (z.B. `DOMAIN=redeliste.mein-verein.de`). 
+   Wichtig: Der DNS-A-Record der Domain muss zwingend auf die Server-IP zeigen, bevor der Container gestartet wird, da sonst die SSL-Ausstellung fehlschlägt.
+3. Konfiguration anpassen:
+   Setze Passwort und Titel in der `config.json` (siehe Option A).
+4. Produktiv-Setup starten:
+   `docker compose -f docker-compose.prod.yml up -d`
+5. Die App ist nun verschlüsselt unter `https://deine-domain.de` erreichbar.
+
+
+---
+---
+
+
+# Speakers' List (Redeliste)
+
+A lightweight, real-time web application to manage speaker queues during meetings, conferences, or assemblies. Built with Python (FastAPI), WebSockets, and TailwindCSS.
+
+---
 
 ## Features
 
-* **Real-time updates:** Powered by WebSockets, all participants see changes to the list instantly without reloading the page.
-* **No barriers:** Participants do not need an account or login to add their name to the list.
-* **Self-management:** Participants can withdraw their request to speak at any time.
-* **Admin Panel:** The session leader has access to a password-protected dashboard. From there, they can call on speakers, manually add or remove people, and reorder the list using drag and drop.
-* **Responsive & Dark Mode:** The UI is fully responsive and automatically adapts to the user's system-wide dark mode preference.
-* **Stateless:** The application stores all data in memory. Once the meeting is over, simply restarting the container clears the data and resets the system.
+* Real-Time Synchronization: All connected devices update instantly via WebSockets (no polling).
+* Procedural Motions (GO-Anträge): Priority requests that automatically bypass regular queues and can be submitted even if the list is locked.
+* Admin Dashboard: Password-protected control panel for moderators.
+* Drag & Drop: Easily reorder the speakers' list using mouse or touch.
+* Freeze Function: Admins can lock the list, preventing new regular requests.
+* Active Speaker Tracking: The currently speaking person is highlighted for all users.
+* Dark Mode: The UI automatically adapts to the user's system preferences.
 
-## Tech Stack
+---
 
-* Backend: Python 3, FastAPI, WebSockets
-* Frontend: HTML5, Vanilla JavaScript, Tailwind CSS, SortableJS
-* Deployment: Docker & Docker Compose
+## Installation & Setup
 
-## Installation (Docker)
+This project provides two Docker deployment methods depending on your use case. Docker and Docker Compose are required.
+
+### Option A: Local / VPN (Standard)
+Ideal for testing, local networks, or VPNs (like Tailscale). The app runs unencrypted on port 5005.
 
 1. Clone the repository:
-   ```bash
-   git clone [https://github.com/Julian4060206/redeliste.git](https://github.com/Julian4060206/redeliste.git)
-   cd redeliste
+   `git clone https://github.com/Julian4060206/redeliste.git && cd redeliste`
+2. Configure the App:
+   Create or edit the `config.json` file to set your custom title and admin password:
+   ```json
+   {
+       "title": "My Speakers' List",
+       "admin_password": "your_secure_password"
+   }
    ```
-
-2. Create the configuration:
-   Copy the example configuration file and set your desired session title and a secure admin password.
-   ```bash
-   cp config.example.json config.json
-   ```
-
 3. Start the container:
-   ```bash
-   docker compose up -d --build
-   ```
+   `docker compose up -d`
+4. The app is now available at `http://localhost:5005`. Access the admin panel at `/admin`.
 
-The application is now accessible at `http://localhost:5005` (or via your server's IP address).
+---
 
-## Usage
+### Option B: Production Server (Public Domain via Caddy)
+The setup for actual web servers. This uses Caddy as a reverse proxy to handle WebSocket routing and automatically fetch a free SSL certificate (HTTPS) via Let's Encrypt.
 
-* **Participants:** Access the root URL (`http://localhost:5005`).
-* **Admin:** Access the `/admin` path (`http://localhost:5005/admin`) and log in using the password defined in your `config.json`.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+1. Clone the repository:
+   `git clone https://github.com/Julian4060206/redeliste.git && cd redeliste`
+2. Prepare Environment Variables:
+   `cp .env.example .env`
+   Open `.env` and set your domain (e.g., `DOMAIN=redeliste.my-domain.com`). 
+   Important: Ensure your domain's DNS A-Record points to your server's IP address before starting, otherwise the SSL certificate provisioning will fail.
+3. Configure the App:
+   Edit `config.json` to set your admin password and title (see Option A).
+4. Start the Production Setup:
+   `docker compose -f docker-compose.prod.yml up -d`
+5. The app is now securely available at `https://your-domain.com`.

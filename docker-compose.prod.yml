@@ -1,0 +1,29 @@
+version: '3.8'
+services:
+  redeliste:
+    build: .
+    container_name: redeliste_app
+    restart: unless-stopped
+    # Keine Ports freigegeben, Caddy regelt das intern
+    volumes:
+      - ./config.json:/app/config.json
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: redeliste_proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - redeliste
+
+volumes:
+  caddy_data:
+  caddy_config:

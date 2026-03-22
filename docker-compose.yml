@@ -4,6 +4,6 @@ services:
     container_name: redeliste
     restart: unless-stopped
     ports:
-      - "5005:5000"
+      - "5005:5005"
     volumes:
       - ./config.json:/app/config.json

@@ -1,0 +1,5 @@
+{$DOMAIN} {
+    # Leitet alle Anfragen sicher an den internen Redeliste-Container weiter.
+    # WebSockets werden von Caddy automatisch erkannt und unterstützt!
+    reverse_proxy redeliste:5005
+}
