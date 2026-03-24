@@ -25,11 +25,10 @@
                 
                 <div class="flex gap-2 mb-4">
                     <input type="text" id="addName" placeholder="Name eingeben" 
-                           onkeydown="if(event.key === 'Enter'){ event.preventDefault(); action('add'); }"
-                           class="flex-grow border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded outline-none focus:ring focus:ring-red-200">
-                    <button onclick="action('add')" class="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 transition-colors">Hinzufügen</button>
-                </div>
-                
+                    onkeydown="if(event.key === 'Enter'){ event.preventDefault(); action('add'); }"
+                    class="flex-grow min-w-0 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded outline-none focus:ring focus:ring-red-200">
+                    <button onclick="action('add')" class="shrink-0 whitespace-nowrap bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 transition-colors">Hinzufügen</button>
+                </div>                
                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Tipp: Liste greifen und verschieben (Drag & Drop)</p>
                 
                 <ul id="adminList" class="space-y-2"></ul>
@@ -57,6 +56,7 @@
         // Prüfe, ob in der aktuellen Session schon ein Token (Passwort) hinterlegt wurde.
         let token = sessionStorage.getItem('adminToken') || '';
         let ws;
+        let sortableInstance = null; // Merkt sich die aktuelle Drag&Drop-Instanz
 
         // Auto-Login, falls das Token noch da ist. Überspringt den Login-Screen.
         if (token) {
@@ -162,23 +162,36 @@
         function renderAdminList(list) {
             const container = document.getElementById('adminList');
             
-            // Generiert das HTML für die Liste anhand des vom Server gepushten Arrays
+            // Generiert das HTML für die Liste...
             container.innerHTML = list.map(p => `
-                <li data-id="${p.id}" class="p-3 rounded-lg border flex justify-between items-center cursor-move transition-colors ${p.active ? 'bg-red-100 border-red-400 dark:bg-red-900 dark:border-red-600' : (p.is_go ? 'bg-amber-50 border-amber-300 dark:bg-amber-900/20 dark:border-amber-700' : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600')}">
-                    <span class="font-semibold select-none">
-                        ☰ ${p.name} 
-                        ${p.is_go ? '<span class="text-[10px] bg-amber-500 text-white px-2 py-0.5 rounded ml-2">GO</span>' : ''}
-                    </span>
-                    <div class="flex gap-2">
-                        <button onclick="action('activate', ${p.id})" class="text-sm bg-blue-500 text-white px-3 py-1 rounded shadow hover:bg-blue-600">Aufrufen</button>
-                        <button onclick="action('remove', ${p.id})" class="text-sm bg-gray-500 text-white px-3 py-1 rounded shadow hover:bg-gray-600">X</button>
+                <li data-id="${p.id}" class="p-3 rounded-lg border flex flex-wrap sm:flex-nowrap justify-between items-center transition-colors gap-2 ${p.active ? 'bg-red-100 border-red-400 dark:bg-red-900 dark:border-red-600' : (p.is_go ? 'bg-amber-50 border-amber-300 dark:bg-amber-900/20 dark:border-amber-700' : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600')}">
+                    <div class="font-semibold select-none flex items-center flex-grow min-w-0">
+                        <span class="drag-handle cursor-move mr-3 text-gray-400 text-xl px-2 py-1 bg-gray-200 dark:bg-gray-600 rounded active:bg-gray-300">☰</span>
+                        <span class="truncate">${p.name}</span> 
+                        ${p.is_go ? '<span class="text-[10px] bg-amber-500 text-white px-2 py-0.5 rounded ml-2 shrink-0">GO</span>' : ''}
+                    </div>
+                    <div class="flex gap-2 shrink-0">
+                        <button onclick="action('activate', ${p.id})" class="text-sm bg-blue-500 text-white px-4 py-2 rounded shadow hover:bg-blue-600">Aufrufen</button>
+                        <button onclick="action('remove', ${p.id})" class="text-sm bg-gray-500 text-white px-4 py-2 rounded shadow hover:bg-gray-600">X</button>
                     </div>
                 </li>
             `).join('');
             
-            // Initialisiert (oder re-initialisiert) das Drag&Drop Plugin für die neu erstellten Elemente
-            new Sortable(container, { animation: 150, onEnd: saveOrder });
+            // NEU: Räumt den alten Drag&Drop-Geist auf, falls es einen gibt!
+            if (sortableInstance) {
+                sortableInstance.destroy();
+            }
+            
+            // Speichert die neue Instanz in der Variablen
+            sortableInstance = new Sortable(container, { 
+                animation: 150, 
+                handle: '.drag-handle',
+                delay: 150,             
+                delayOnTouchOnly: true, 
+                onEnd: saveOrder 
+            });
         }
+
     </script>
 </body>
 </html>

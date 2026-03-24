@@ -112,7 +112,7 @@ async def leave_list(req: LeaveRequest):
     return {"status": "ok"}
 
 @app.post("/api/admin/action")
-async def admin_action(action: str, target_id: int = None, new_order: List[int] = None, new_name: str = None, x_admin_token: str = Header(None)):
+async def admin_action(request: Request, action: str, target_id: int = None, new_name: str = None, x_admin_token: str = Header(None)):
     global state, client_counter, is_frozen
     
     # Admin-Passwort checken
@@ -141,19 +141,24 @@ async def admin_action(action: str, target_id: int = None, new_order: List[int] 
         # Jemanden manuell von der Liste kicken
         state = [p for p in state if p["id"] != target_id]
         
-    elif action == "reorder" and new_order:
-        # Synchronisiert die Reihenfolge mit dem Drag & Drop aus dem Admin-Frontend
-        state.sort(key=lambda x: new_order.index(x["id"]) if x["id"] in new_order else 999)
-        
+    elif action == "reorder":
+        # FIX: Wir holen uns das Array jetzt direkt aus dem JSON-Body der Anfrage
+        try:
+            new_order = await request.json()
+            if isinstance(new_order, list):
+                state.sort(key=lambda x: new_order.index(x["id"]) if x["id"] in new_order else 999)
+        except Exception:
+            pass # Falls mal fehlerhaftes JSON kommt, stürzt die App nicht ab
+            
     elif action == "add" and new_name:
-        # Manuelles Hinzufügen durch den Admin (z.B. für Leute ohne Handy)
+        # Manuelles Hinzufügen durch den Admin
         state.append({"id": client_counter, "name": new_name, "active": False, "is_go": False})
         client_counter += 1
         
     # Nach jeder Aktion (außer ping) alle Clients updaten
     await manager.broadcast()
     return {"status": "ok"}
-
+    
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
