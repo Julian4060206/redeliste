@@ -18,7 +18,7 @@ def load_config():
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, "r") as f:
             return json.load(f)
-    return {"title": "Redeliste", "admin_password": "admin"}
+    return {"title": "Redeliste", "admin_password": "admin", "user_password": "user"}
 
 config = load_config()
 
@@ -56,11 +56,11 @@ manager = ConnectionManager()
 # --- Frontend Routes ---
 @app.get("/")
 async def get_public(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request, "title": config["title"]})
+    return templates.TemplateResponse(request=request, name="index.html", context={"request": request, "title": config["title"]})
 
 @app.get("/admin")
 async def get_admin(request: Request):
-    return templates.TemplateResponse("admin.html", {"request": request, "title": config["title"]})
+    return templates.TemplateResponse(request=request, name="admin.html", context={"request": request, "title": config["title"]})
 
 # --- API Models ---
 class JoinRequest(BaseModel):
@@ -71,9 +71,20 @@ class LeaveRequest(BaseModel):
     id: int
 
 # --- API Routes ---
+@app.post("/api/user/ping")
+async def verify_user(x_user_token: str = Header(None)):
+    # Wird vom Login-Screen im Frontend genutzt
+    if x_user_token != config.get("user_password", "user"):
+        raise HTTPException(status_code=401, detail="Falsches Passwort")
+    return {"status": "ok"}
+
 @app.post("/api/join")
-async def join_list(req: JoinRequest):
+async def join_list(req: JoinRequest, x_user_token: str = Header(None)):
     global client_counter, state, is_frozen
+    
+    # User-Passwort checken
+    if x_user_token != config.get("user_password", "user"):
+        raise HTTPException(status_code=401, detail="Falsches Passwort")
     
     # Wichtig: Normale Meldungen blockieren, wenn die Liste zu ist.
     # Aber GO-Anträge müssen immer durchgehen.
@@ -104,8 +115,13 @@ async def join_list(req: JoinRequest):
     return {"status": "ok", "id": new_id}
 
 @app.post("/api/leave")
-async def leave_list(req: LeaveRequest):
+async def leave_list(req: LeaveRequest, x_user_token: str = Header(None)):
     global state
+    
+    # User-Passwort checken
+    if x_user_token != config.get("user_password", "user"):
+        raise HTTPException(status_code=401, detail="Falsches Passwort")
+
     # Filtere den Client anhand seiner ID aus der Liste
     state = [p for p in state if p["id"] != req.id]
     await manager.broadcast()
@@ -142,7 +158,6 @@ async def admin_action(request: Request, action: str, target_id: int = None, new
         state = [p for p in state if p["id"] != target_id]
         
     elif action == "reorder":
-        # FIX: Wir holen uns das Array jetzt direkt aus dem JSON-Body der Anfrage
         try:
             new_order = await request.json()
             if isinstance(new_order, list):

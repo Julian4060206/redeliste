@@ -12,29 +12,38 @@
     <main class="flex-grow">
         <h1 class="text-2xl font-bold text-center mb-6 text-blue-600 dark:text-blue-400">{{ title }}</h1>
         
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md mb-6 transition-colors duration-300 flex flex-col gap-4">
-            <h2 class="text-lg font-semibold" id="actionTitle">Aktionen</h2>
-            
-            <input type="text" id="nameInput" placeholder="Dein Name..." class="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded w-full focus:ring focus:ring-blue-200 dark:focus:ring-blue-800 outline-none transition-colors">
-
-            <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 flex flex-col gap-2">
-                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Reguläre Wortmeldung</h3>
-                <button id="btnNormal" onclick="joinList(false)" class="w-full bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 transition-colors">Melden</button>
-                <button id="leaveNormalBtn" onclick="leaveList(false)" class="hidden w-full bg-red-500 text-white px-4 py-2 rounded shadow hover:bg-red-600 transition-colors">Wortmeldung zurückziehen</button>
-                <div id="frozenMessage" class="hidden text-center text-sm text-orange-600 dark:text-orange-400 font-bold py-1 bg-orange-100 dark:bg-orange-900/30 rounded">🔒 Die Liste ist geschlossen.</div>
-            </div>
-
-            <div class="p-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-200 dark:border-amber-700/50 flex flex-col gap-2">
-                <h3 class="text-sm font-semibold text-amber-800 dark:text-amber-400">Geschäftsordnungsantrag (GO)</h3>
-                <button id="btnGO" onclick="joinList(true)" class="w-full bg-amber-500 text-white px-4 py-2 rounded shadow hover:bg-amber-600 transition-colors font-semibold">GO-Antrag stellen</button>
-                <button id="leaveGoBtn" onclick="leaveList(true)" class="hidden w-full bg-red-500 text-white px-4 py-2 rounded shadow hover:bg-red-600 transition-colors">GO-Antrag zurückziehen</button>
-                <p id="goHint" class="text-xs text-amber-700/70 dark:text-amber-500/70 text-center">Wird priorisiert behandelt. Auch bei gesperrter Liste möglich.</p>
-            </div>
+        <div id="loginSection" class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md mb-6 transition-colors">
+            <input type="password" id="pwInput" placeholder="Passwort" 
+                   onkeydown="if(event.key === 'Enter') login()" 
+                   class="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded w-full mb-2 outline-none focus:ring focus:ring-blue-200">
+            <button onclick="login()" class="bg-blue-600 text-white w-full px-4 py-2 rounded shadow hover:bg-blue-700 transition-colors">Einloggen</button>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md transition-colors duration-300">
-            <h2 class="text-lg font-semibold mb-3">Aktuelle Redeliste</h2>
-            <ul id="listContainer" class="space-y-2"></ul>
+        <div id="mainSection" class="hidden">
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md mb-6 transition-colors duration-300 flex flex-col gap-4">
+                <h2 class="text-lg font-semibold" id="actionTitle">Aktionen</h2>
+                
+                <input type="text" id="nameInput" placeholder="Dein Name..." class="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded w-full focus:ring focus:ring-blue-200 dark:focus:ring-blue-800 outline-none transition-colors">
+
+                <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 flex flex-col gap-2">
+                    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Reguläre Wortmeldung</h3>
+                    <button id="btnNormal" onclick="joinList(false)" class="w-full bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 transition-colors">Melden</button>
+                    <button id="leaveNormalBtn" onclick="leaveList(false)" class="hidden w-full bg-red-500 text-white px-4 py-2 rounded shadow hover:bg-red-600 transition-colors">Wortmeldung zurückziehen</button>
+                    <div id="frozenMessage" class="hidden text-center text-sm text-orange-600 dark:text-orange-400 font-bold py-1 bg-orange-100 dark:bg-orange-900/30 rounded">🔒 Die Liste ist geschlossen.</div>
+                </div>
+
+                <div class="p-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-200 dark:border-amber-700/50 flex flex-col gap-2">
+                    <h3 class="text-sm font-semibold text-amber-800 dark:text-amber-400">Geschäftsordnungsantrag (GO)</h3>
+                    <button id="btnGO" onclick="joinList(true)" class="w-full bg-amber-500 text-white px-4 py-2 rounded shadow hover:bg-amber-600 transition-colors font-semibold">GO-Antrag stellen</button>
+                    <button id="leaveGoBtn" onclick="leaveList(true)" class="hidden w-full bg-red-500 text-white px-4 py-2 rounded shadow hover:bg-red-600 transition-colors">GO-Antrag zurückziehen</button>
+                    <p id="goHint" class="text-xs text-amber-700/70 dark:text-amber-500/70 text-center">Wird priorisiert behandelt. Auch bei gesperrter Liste möglich.</p>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md transition-colors duration-300">
+                <h2 class="text-lg font-semibold mb-3">Aktuelle Redeliste</h2>
+                <ul id="listContainer" class="space-y-2"></ul>
+            </div>
         </div>
     </main>
 
@@ -43,18 +52,45 @@
     </footer>
 
     <script>
-        // State: Wir verwalten zwei getrennte IDs im sessionStorage, 
-        // um reguläre Meldungen und GO-Anträge parallel zu erlauben.
         let myNormalId = sessionStorage.getItem('myNormalId') ? parseInt(sessionStorage.getItem('myNormalId')) : null;
         let myGoId = sessionStorage.getItem('myGoId') ? parseInt(sessionStorage.getItem('myGoId')) : null;
-        let mySavedName = sessionStorage.getItem('myName') || ''; // Damit man den Namen nicht ständig neu tippen muss
+        let mySavedName = sessionStorage.getItem('myName') || ''; 
+        let userToken = sessionStorage.getItem('userToken') || ''; // Das gespeicherte Anwender-Passwort
         
         let currentList = [];
         let isFrozen = false;
         let ws;
 
+        // Auto-Login, falls das Passwort in dieser Session schon eingegeben wurde
+        if (userToken) {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('mainSection').classList.remove('hidden');
+            connect();
+        }
+
+        async function login() {
+            const inputToken = document.getElementById('pwInput').value;
+            if (!inputToken) return;
+            
+            // Server fragen, ob das Passwort stimmt
+            const res = await fetch(`/api/user/ping`, { 
+                method: 'POST', headers: { 'X-User-Token': inputToken } 
+            });
+
+            if (res.status === 401) {
+                alert("Falsches Passwort!");
+                document.getElementById('pwInput').value = '';
+            } else {
+                userToken = inputToken;
+                sessionStorage.setItem('userToken', userToken);
+                document.getElementById('pwInput').value = '';
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('mainSection').classList.remove('hidden');
+                connect();
+            }
+        }
+
         function connect() {
-            // Protokoll-Weiche für Tailscale Funnel (wss bei https, ws bei http)
             const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
             ws = new WebSocket(`${protocol}//${location.host}/ws`);
             
@@ -65,14 +101,10 @@
                 renderList(currentList);
             };
             
-            // Auto-Reconnect bei Verbindungsabbruch (z.B. Standby am Handy)
             ws.onclose = () => setTimeout(connect, 2000);
         }
-        connect();
 
         function updateUI(list) {
-            // Sync-Check: Wurden wir vom Admin manuell von der Liste geworfen? 
-            // Wenn ja, lokale IDs bereinigen.
             if (myNormalId && !list.some(p => p.id === myNormalId)) {
                 myNormalId = null; sessionStorage.removeItem('myNormalId');
             }
@@ -81,11 +113,8 @@
             }
 
             const nameInput = document.getElementById('nameInput');
-            
-            // Namen automatisch ins Feld eintragen, falls er aus einer vorherigen Sitzung bekannt ist
             if (!nameInput.value && mySavedName) nameInput.value = mySavedName;
 
-            // --- UI Logik: Reguläre Meldung ---
             if (myNormalId) {
                 document.getElementById('btnNormal').classList.add('hidden');
                 document.getElementById('frozenMessage').classList.add('hidden');
@@ -93,7 +122,6 @@
             } else {
                 document.getElementById('leaveNormalBtn').classList.add('hidden');
                 if (isFrozen) {
-                    // Liste ist zu: Melden-Button verstecken, Schloss-Hinweis zeigen
                     document.getElementById('btnNormal').classList.add('hidden');
                     document.getElementById('frozenMessage').classList.remove('hidden');
                 } else {
@@ -102,7 +130,6 @@
                 }
             }
 
-            // --- UI Logik: GO Antrag ---
             if (myGoId) {
                 document.getElementById('btnGO').classList.add('hidden');
                 document.getElementById('leaveGoBtn').classList.remove('hidden');
@@ -111,8 +138,6 @@
                 document.getElementById('leaveGoBtn').classList.add('hidden');
             }
 
-            // Namensfeld nur ausblenden, wenn der User absolut nichts mehr eintragen kann
-            // (entweder weil er beides schon hat, oder Liste zu + GO schon gestellt)
             if ((myNormalId && myGoId) || (isFrozen && myGoId)) {
                 nameInput.classList.add('hidden');
             } else {
@@ -126,21 +151,27 @@
             
             if (!nameInput.value.trim()) return;
             
-            // Namen für die Zukunft merken
             mySavedName = nameInput.value.trim();
             sessionStorage.setItem('myName', mySavedName);
             
-            // UI sperren, um Spam-Klicks ("Double Submit") zu verhindern, während der Fetch läuft
             nameInput.disabled = true;
             btn.disabled = true;
             
             try {
                 const res = await fetch('/api/join', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json', 'X-User-Token': userToken },
                     body: JSON.stringify({ name: mySavedName, is_go: isGo })
                 });
                 
-                // Fallback, falls der Status im Backend genau zwischen Klick und Request auf "Frozen" gewechselt ist
+                // Falls das Passwort zwischendurch vom Admin geändert wurde
+                if (res.status === 401) {
+                    alert("Sitzung abgelaufen oder Passwort falsch!");
+                    sessionStorage.removeItem('userToken');
+                    location.reload();
+                    return;
+                }
+
                 if (res.status === 403) {
                     alert("Die Liste wurde gerade vom Admin gesperrt.");
                     return;
@@ -148,7 +179,6 @@
                 
                 const data = await res.json();
                 
-                // Die ID im richtigen Slot speichern
                 if (isGo) {
                     myGoId = data.id;
                     sessionStorage.setItem('myGoId', myGoId);
@@ -159,18 +189,15 @@
                 
                 renderList(currentList); 
             } finally {
-                // UI wieder freigeben (egal ob Erfolg oder Fehler)
                 nameInput.disabled = false;
                 btn.disabled = false;
             }
         }
 
         async function leaveList(isGo) {
-            // Ermitteln, welche Meldung zurückgezogen werden soll
             let tempId = isGo ? myGoId : myNormalId;
             if (!tempId) return;
             
-            // Lokalen State sofort aufräumen, damit die UI direkt reagiert (snappy UX)
             if (isGo) {
                 myGoId = null;
                 sessionStorage.removeItem('myGoId');
@@ -181,11 +208,18 @@
             
             renderList(currentList);
             
-            // Server asynchron informieren
-            await fetch('/api/leave', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
+            const res = await fetch('/api/leave', {
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json', 'X-User-Token': userToken },
                 body: JSON.stringify({ id: tempId })
             });
+
+            // Falls das Passwort zwischendurch vom Admin geändert wurde
+            if (res.status === 401) {
+                alert("Sitzung abgelaufen oder Passwort falsch!");
+                sessionStorage.removeItem('userToken');
+                location.reload();
+            }
         }
 
         function renderList(list) {
@@ -197,8 +231,6 @@
                 return;
             }
             
-            // Liste rendern: Visuelles Feedback für den User selbst ("isMe" -> grüner Rand)
-            // und farbliche Trennung von GO-Anträgen (Amber) und normalen Meldungen (Grau)
             container.innerHTML = list.map((p, index) => {
                 const isMe = (p.id === myNormalId) || (p.id === myGoId);
                 const activeClasses = p.active 
