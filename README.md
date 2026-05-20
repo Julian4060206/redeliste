@@ -59,6 +59,85 @@ Das Setup für echte Webserver. Es nutzt Caddy als Reverse Proxy, um WebSockets 
 
 
 ---
+
+### Option C: Beliebig viele Instanzen auf einem Server (Multi-Setup)
+Das ideale Setup, wenn du die Redeliste für verschiedene Gruppen (z. B. mehrere Gremien, Ausschüsse oder Events) parallel auf demselben Server betreiben möchtest. Ein zentraler Caddy-Proxy leitet den Traffic anhand von Subdomains an die richtigen Container weiter und sorgt vollautomatisch für HTTPS. Du kannst dieses Setup auf beliebig viele Instanzen erweitern.
+
+1. Zentrales Verzeichnis anlegen:
+   `mkdir -p /opt/redeliste_master && cd /opt/redeliste_master`
+2. Konfigurationsdateien vorbereiten:
+   Lade die `config.example.json` aus dem Repository herunter und benenne sie für jede deiner Gruppen lokal um. Wiederhole diesen Schritt für jede weitere Gruppe, die du benötigst:
+   ```bash
+   curl -o config_gruppe1.json [https://raw.githubusercontent.com/Julian4060206/redeliste/main/config.example.json](https://raw.githubusercontent.com/Julian4060206/redeliste/main/config.example.json)
+   curl -o config_gruppe2.json [https://raw.githubusercontent.com/Julian4060206/redeliste/main/config.example.json](https://raw.githubusercontent.com/Julian4060206/redeliste/main/config.example.json)
+   curl -o config_gruppe3.json [https://raw.githubusercontent.com/Julian4060206/redeliste/main/config.example.json](https://raw.githubusercontent.com/Julian4060206/redeliste/main/config.example.json)
+   ```
+   
+Passe anschließend die Passwörter und Titel in den jeweiligen Dateien an.
+3. docker-compose.yml erstellen:
+Lege die Datei an. Die App wird hierbei direkt aus dem GitHub-Repository gebaut und deine lokalen Konfigurationsdateien werden im Container als config.json eingebunden. Füge für jede weitere Gruppe einfach einen neuen Block hinzu:
+
+YAML
+version: '3.8'
+services:
+  gruppe1:
+    build: [https://github.com/Julian4060206/redeliste.git#main](https://github.com/Julian4060206/redeliste.git#main)
+    container_name: redeliste_gruppe1
+    restart: unless-stopped
+    volumes:
+      - ./config_gruppe1.json:/app/config.json
+  
+  gruppe2:
+    build: [https://github.com/Julian4060206/redeliste.git#main](https://github.com/Julian4060206/redeliste.git#main)
+    container_name: redeliste_gruppe2
+    restart: unless-stopped
+    volumes:
+      - ./config_gruppe2.json:/app/config.json
+
+  gruppe3:
+    build: [https://github.com/Julian4060206/redeliste.git#main](https://github.com/Julian4060206/redeliste.git#main)
+    container_name: redeliste_gruppe3
+    restart: unless-stopped
+    volumes:
+      - ./config_gruppe3.json:/app/config.json
+
+  caddy_proxy:
+    image: caddy:2-alpine
+    container_name: redeliste_proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+Caddyfile erstellen:
+Erstelle die Datei, um deine Subdomains den jeweiligen Containern zuzuordnen. Wichtig: Die DNS-A-Records aller Subdomains müssen vor dem Start auf die Server-IP zeigen, damit die HTTPS-Zertifikate ausgestellt werden können.
+
+Code-Snippet
+gruppe1.deine-domain.de {
+    reverse_proxy redeliste_gruppe1:5005
+}
+
+gruppe2.deine-domain.de {
+    reverse_proxy redeliste_gruppe2:5005
+}
+
+gruppe3.deine-domain.de {
+    reverse_proxy redeliste_gruppe3:5005
+}
+
+5. Multi-Setup starten:
+   `docker compose up -d --build`
+   Die Instanzen sind nun sicher und verschlüsselt unter ihren jeweiligen Subdomains erreichbar.
+
+---
 ---
 
 
@@ -118,3 +197,82 @@ The setup for actual web servers. This uses Caddy as a reverse proxy to handle W
 4. Start the Production Setup:
    `docker compose -f docker-compose.prod.yml up -d --build`
 5. The app is now securely available at `https://your-domain.com`.
+
+---
+
+### Option C: Any Number of Instances on One Server (Multi-Setup)
+The ideal setup if you want to run the application for multiple groups (e.g., various committees, events, or boards) simultaneously on the same server. A centralized Caddy proxy routes traffic to the correct containers based on subdomains and handles HTTPS automatically. You can scale this setup to as many instances as you need.
+
+1. Create a Master Directory:
+   `mkdir -p /opt/redeliste_master && cd /opt/redeliste_master`
+2. Prepare Configuration Files:
+   Download the `config.example.json` from the repository and rename it locally for each of your groups. Repeat this step for any additional groups you need:
+   ```bash
+   curl -o config_group1.json [https://raw.githubusercontent.com/Julian4060206/redeliste/main/config.example.json](https://raw.githubusercontent.com/Julian4060206/redeliste/main/config.example.json)
+   curl -o config_group2.json [https://raw.githubusercontent.com/Julian4060206/redeliste/main/config.example.json](https://raw.githubusercontent.com/Julian4060206/redeliste/main/config.example.json)
+   curl -o config_group3.json [https://raw.githubusercontent.com/Julian4060206/redeliste/main/config.example.json](https://raw.githubusercontent.com/Julian4060206/redeliste/main/config.example.json)
+   ```
+   
+Edit these files to set custom passwords and titles for each instance.
+3. Create the docker-compose.yml:
+Create the file. The app builds directly from the GitHub repository, and your local config files are mapped into the containers as the required config.json. Just add a new block for any additional group you need:
+
+YAML
+version: '3.8'
+services:
+  group1:
+    build: [https://github.com/Julian4060206/redeliste.git#main](https://github.com/Julian4060206/redeliste.git#main)
+    container_name: redeliste_group1
+    restart: unless-stopped
+    volumes:
+      - ./config_group1.json:/app/config.json
+  
+  group2:
+    build: [https://github.com/Julian4060206/redeliste.git#main](https://github.com/Julian4060206/redeliste.git#main)
+    container_name: redeliste_group2
+    restart: unless-stopped
+    volumes:
+      - ./config_group2.json:/app/config.json
+
+  group3:
+    build: [https://github.com/Julian4060206/redeliste.git#main](https://github.com/Julian4060206/redeliste.git#main)
+    container_name: redeliste_group3
+    restart: unless-stopped
+    volumes:
+      - ./config_group3.json:/app/config.json
+
+  caddy_proxy:
+    image: caddy:2-alpine
+    container_name: redeliste_proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+Create the Caddyfile:
+Create the file to map your subdomains to the respective containers. Important: The DNS A-Records for all your subdomains must point to your server's IP before starting to ensure successful HTTPS provisioning.
+
+Code-Snippet
+group1.your-domain.com {
+    reverse_proxy redeliste_group1:5005
+}
+
+group2.your-domain.com {
+    reverse_proxy redeliste_group2:5005
+}
+
+group3.your-domain.com {
+    reverse_proxy redeliste_group3:5005
+}
+
+5. Start the Multi-Setup:
+   `docker compose up -d --build`
+   The instances are now securely available under their respective subdomains.

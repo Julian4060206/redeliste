@@ -62,6 +62,11 @@ async def get_public(request: Request):
 async def get_admin(request: Request):
     return templates.TemplateResponse(request=request, name="admin.html", context={"request": request, "title": config["title"]})
 
+@app.get("/beamer")
+async def get_beamer(request: Request):
+    # Liefert eine saubere, minimalistische Ansicht nur für den Beamer
+    return templates.TemplateResponse(request=request, name="beamer.html", context={"request": request, "title": "Beamer-Ansicht"})
+
 # --- API Models ---
 class JoinRequest(BaseModel):
     name: str
